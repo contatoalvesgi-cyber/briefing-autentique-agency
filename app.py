@@ -20,6 +20,22 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
+
+@app.after_request
+def add_cors_headers(response):
+    """Permite que o formulário (hospedado em outro domínio, no GitHub Pages)
+    consiga chamar este servidor via fetch()."""
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    return response
+
+
+@app.route("/webhook", methods=["OPTIONS"])
+def webhook_preflight():
+    return ("", 204)
+
+
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 NOTION_TOKEN = os.environ.get("NOTION_TOKEN")
 NOTION_DATABASE_ID = os.environ.get("NOTION_DATABASE_ID")
