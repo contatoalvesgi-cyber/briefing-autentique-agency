@@ -407,5 +407,6 @@ def health():
             ok = False
 
     status_code = 200 if ok else 503
-    return jsonify({"status": "ok" if ok else "problema detectado", "checks": checks}), status_code if __name__ == "__main__":
+    return jsonify({"status": "ok" if ok else "problema detectado", "checks": checks}), status_code   
+  if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
