@@ -311,5 +311,53 @@ def webhook():
         return jsonify({"error": str(e)}), 500
 
 
-if __name__ == "__main__":
+@app.route("/health", methods=["GET"])
+def health():
+    checks = {}
+    ok = True
+
+    if not GROQ_API_KEY:
+        checks["groq"] = "GROQ_API_KEY não configurada"
+        ok = False
+    else:
+        try:
+            resp = requests.get(
+                "https://api.groq.com/openai/v1/models",
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+                timeout=15,
+            )
+            resp.raise_for_status()
+            model_ids = [m["id"] for m in resp.json().get("data", [])]
+            if "openai/gpt-oss-120b" not in model_ids:
+                checks["groq"] = "modelo 'openai/gpt-oss-120b' não está mais disponível na Groq"
+                ok = False
+            else:
+                checks["groq"] = "ok"
+        except Exception as e:
+            checks["groq"] = f"falha ao consultar Groq: {e}"
+            ok = False
+
+    if not NOTION_TOKEN or not NOTION_DATABASE_ID:
+        checks["notion"] = "NOTION_TOKEN ou NOTION_DATABASE_ID não configurados"
+        ok = False
+    else:
+        try:
+            resp = requests.post(
+                f"https://api.notion.com/v1/databases/{NOTION_DATABASE_ID}/query",
+                headers={
+                    "Authorization": f"Bearer {NOTION_TOKEN}",
+                    "Notion-Version": NOTION_VERSION,
+                    "Content-Type": "application/json",
+                },
+                json={"page_size": 1},
+                timeout=15,
+            )
+            resp.raise_for_status()
+            checks["notion"] = "ok"
+        except Exception as e:
+            checks["notion"] = f"falha ao consultar Notion: {e}"
+            ok = False
+
+    status_code = 200 if ok else 503
+    return jsonify({"status": "ok" if ok else "problema detectado", "checks": checks}), status_code if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
